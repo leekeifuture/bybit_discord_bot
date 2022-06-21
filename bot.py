@@ -1,6 +1,7 @@
 import logging
 
 import discord
+from discord import User
 
 from database import Database
 from settings import DISCORD_BOT_TOKEN, LOG_LEVEL, DB_URL, DISCORD_GUILD_ID, \
@@ -27,28 +28,33 @@ class Buttons(discord.ui.View):
         invite_link = await channel.create_invite(max_uses=1, unique=True)
         await self.user.send(
             'You\'re successful approved and '
-            'been invited to join ByBit server :white_check_mark:\n' +
+            'been invited to join ByBit chat :white_check_mark:\n' +
             str(invite_link)
         )
 
         self.green_button.disabled = True
         self.red_button.disabled = True
         await interaction.response.edit_message(
-            content=f'Successfully approved!',
+            content=self.user.name + ' has been successfully approved and '
+                                     'invited to the ByBit chat!',
             view=self
         )
+
+        logger.info(self.user.name + ' has been approved by ' + self.admin.name)
 
     @discord.ui.button(label="Deny", style=discord.ButtonStyle.red)
     async def red_button(self, interaction: discord.Interaction,
                          button: discord.ui.Button):
-        await self.user.send('You was denied to join to the ByBit server :(')
+        await self.user.send('You was denied to join to the ByBit chat :(')
 
         self.green_button.disabled = True
         self.red_button.disabled = True
         await interaction.response.edit_message(
-            content='Successfully denied!',
+            content=self.user.name + ' has been successfully denied!',
             view=self
         )
+
+        logger.info(self.user.name + ' has been denied by ' + self.admin.name)
 
 
 class MyClient(discord.Client):
@@ -62,43 +68,43 @@ class MyClient(discord.Client):
         logger.info('SampleDiscordBot is in ' + str(guild_count) + ' guilds.')
 
     async def on_message(self, message: discord.Message):
-        # if message.author.dm_channel and message.channel.id == message.author.dm_channel.id:
-        if message.content.isdigit():
-            user = db.find_by_discord_id(message.author.id)
-            uid = message.content
+        if type(message.author) == User:
+            if message.content.isdigit():
+                user = db.find_by_discord_id(message.author.id)
+                uid = message.content
 
-            if user:
-                await message.author.send(
-                    'You already sent a request. '
-                    'Please wait up to 48 hours to approve your request.'
-                )
+                if user:
+                    await message.author.send(
+                        'You already sent a request. '
+                        'Please wait up to 48 hours to approve your request.'
+                    )
+                else:
+                    logger.info('Started processing ' + message.author.name +
+                                ' with id: ' + str(message.author.id))
+
+                    for admin_id in DISCORD_ADMINS:
+                        admin = await client.fetch_user(admin_id)
+                        await admin.send('**' + message.author.name + '**' +
+                                         ' sent request to join to the ByBit '
+                                         'chat!\n'
+                                         'ByBit UID: ' + uid,
+                                         view=Buttons(
+                                             user=message.author,
+                                             admin=admin
+                                         ))
+
+                    await message.author.send(
+                        'Your request has been successfully created! '
+                        'Please wait up to 48 hours to approve your request.'
+                    )
+
+                    logger.info(message.author.name +
+                                ' (' + str(message.author.id) + ') ' +
+                                'is successfully processed!')
             else:
-                logger.info('Started processing ' + message.author.name +
-                            ' with id: ' + str(message.author.id))
-
-                for admin_id in DISCORD_ADMINS:
-                    admin = await client.fetch_user(admin_id)
-                    await admin.send('**' + message.author.name + '**' +
-                                     ' sent request to join to the ByBit '
-                                     'server!\n'
-                                     'ByBit UID: ' + uid,
-                                     view=Buttons(
-                                         user=message.author,
-                                         admin=admin
-                                     ))
-
                 await message.author.send(
-                    'Your request has been successfully created! '
-                    'Please wait up to 48 hours to approve your request.'
+                    'Incorrect message! Please send your ByBit UID...'
                 )
-
-                logger.info(message.author.name +
-                            ' (' + str(message.author.id) + ') ' +
-                            'is successfully processed!')
-        else:
-            await message.author.send(
-                'Incorrect message! Please send your ByBit UID...'
-            )
 
 
 if __name__ == '__main__':
