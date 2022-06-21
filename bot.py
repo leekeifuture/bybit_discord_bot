@@ -4,7 +4,7 @@ import discord
 
 from database import Database
 from settings import DISCORD_BOT_TOKEN, LOG_LEVEL, DB_URL, DISCORD_GUILD_ID, \
-    DISCORD_CHANNEL_ID
+    DISCORD_CHANNEL_ID, DISCORD_ADMINS
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -76,14 +76,16 @@ class MyClient(discord.Client):
                 logger.info('Started processing ' + message.author.name +
                             ' with id: ' + str(message.author.id))
 
-                # db.insert(User(message.content, None, message.author.id, False))
-
-                admin = await client.fetch_user(
-                    206374547585236992)  # TODO: add admins
-                await admin.send('**' + message.author.name + '**' +
-                                 ' sent request to join to the ByBit server!\n'
-                                 'ByBit UID: ' + uid,
-                                 view=Buttons(user=message.author, admin=admin))
+                for admin_id in DISCORD_ADMINS:
+                    admin = await client.fetch_user(admin_id)
+                    await admin.send('**' + message.author.name + '**' +
+                                     ' sent request to join to the ByBit '
+                                     'server!\n'
+                                     'ByBit UID: ' + uid,
+                                     view=Buttons(
+                                         user=message.author,
+                                         admin=admin
+                                     ))
 
                 await message.author.send(
                     'Your request has been successfully created! '
