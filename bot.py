@@ -70,10 +70,10 @@ class MyClient(discord.Client):
     async def on_message(self, message: discord.Message):
         if type(message.author) == User:
             if message.content.isdigit():
-                user = db.find_by_discord_id(message.author.id)
+                user = db.find_by_discord_id(message.author.id)  # TODO: remove db
                 uid = message.content
 
-                if user:
+                if user:  # TODO: check if user already in channels
                     await message.author.send(
                         'You already sent a request. '
                         'Please wait up to 48 hours to approve your request.'
