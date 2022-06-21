@@ -14,7 +14,7 @@ if DB_URL is None:
     DB_URL = f"postgres://{DB_USER}:{DB_PASS}@{DB_HOST}/{DB_NAME}"
 
 DISCORD_GUILD_ID = int(environ.get('DISCORD_GUILD_ID'))
-DISCORD_CHANNEL_ID = int(environ.get('DISCORD_CHANNEL_ID'))
+DISCORD_CHANNELS_ID = literal_eval(environ.get('DISCORD_CHANNELS_ID'))
 
 DISCORD_ADMINS = literal_eval(environ.get('DISCORD_ADMINS'))
 
