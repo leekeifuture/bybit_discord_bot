@@ -34,26 +34,35 @@ class Buttons(discord.ui.View):
     @discord.ui.button(label="Approve", style=discord.ButtonStyle.green)
     async def green_button(self, interaction: discord.Interaction,
                            button: discord.ui.Button):
-        invite_content = ''
+        channels_been_added = ''
         for channel_id in DISCORD_CHANNELS_ID:
-            channel = client \
-                .get_guild(DISCORD_GUILD_ID) \
-                .get_channel(int(channel_id))
-            invite_link = await channel.create_invite(max_uses=1, unique=True)
-            invite_text = '\n**' + channel.name + '**:\n' + str(invite_link)
-            invite_content += invite_text
+            guild = client.get_guild(DISCORD_GUILD_ID)
+            channel = guild.get_channel(int(channel_id))
+
+            channel_members_id = list(
+                map(lambda member: member.id, channel.members)
+            )
+            if self.user.id not in channel_members_id:
+                await channel.set_permissions(
+                    guild.get_member(self.user.id),
+                    send_messages=True,
+                    read_messages=True
+                )
+
+                channels_been_added += '- **' + channel.name + '**\n'
 
         await self.user.send(
             'You\'re successful approved and '
-            'been invited to join private channels :white_check_mark:\n' +
-            invite_content
+            'been added to the private channels :white_check_mark:\n' +
+            'Added to:\n' +
+            channels_been_added
         )
 
         self.green_button.disabled = True
         self.red_button.disabled = True
         await interaction.response.edit_message(
             content=self.user.name + ' has been successfully approved and '
-                                     'invited to the private channels!',
+                                     'added to the private channels!',
             view=self
         )
 
@@ -86,6 +95,7 @@ class MyClient(discord.Client):
 
         logger.info('SampleDiscordBot is in ' + str(guild_count) + ' guilds.')
 
+    # TODO: add message when join to server
     @staticmethod
     async def on_message(message: discord.Message):
         if type(message.author) == User:
@@ -96,11 +106,13 @@ class MyClient(discord.Client):
                     ':white_check_mark:'
                 )
             elif message.content.isdigit():
-                logger.info('Started processing ' + message.author.name +
-                            ' with id: ' + str(message.author.id))
                 await message.channel.typing()
 
                 uid = message.content
+
+                logger.info('Started processing ' + message.author.name +
+                            ' with id: ' + str(message.author.id) +
+                            ' and uid: ' + str(uid))
 
                 for admin_id in DISCORD_ADMINS:
                     admin = await client.fetch_user(admin_id)
