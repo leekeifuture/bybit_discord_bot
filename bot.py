@@ -31,7 +31,7 @@ class Buttons(discord.ui.View):
         self.user = user
         self.admin = admin
 
-    @discord.ui.button(label="Approve", style=discord.ButtonStyle.green)
+    @discord.ui.button(label='Approve', style=discord.ButtonStyle.green)
     async def green_button(self, interaction: discord.Interaction,
                            button: discord.ui.Button):
         channels_been_added = ''
@@ -68,7 +68,7 @@ class Buttons(discord.ui.View):
 
         logger.info(self.user.name + ' has been approved by ' + self.admin.name)
 
-    @discord.ui.button(label="Deny", style=discord.ButtonStyle.red)
+    @discord.ui.button(label='Deny', style=discord.ButtonStyle.red)
     async def red_button(self, interaction: discord.Interaction,
                          button: discord.ui.Button):
         await self.user.send(
@@ -95,7 +95,16 @@ class MyClient(discord.Client):
 
         logger.info('SampleDiscordBot is in ' + str(guild_count) + ' guilds.')
 
-    # TODO: add message when join to server
+    @staticmethod
+    async def on_member_join(member):
+        if not is_user_in_all_private_channels(member):
+            await member.send(
+                'Welcome! I\'m here to help you get access to ByBit '
+                'private channels. Just send me your UID from ByBit '
+                'affiliates and wait a bit when someone from admins '
+                'approves your request :fingers_crossed:'
+            )
+
     @staticmethod
     async def on_message(message: discord.Message):
         if type(message.author) == User:
