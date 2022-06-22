@@ -11,6 +11,20 @@ logger = logging.getLogger(__name__)
 logger.setLevel(level=LOG_LEVEL)
 
 
+def is_user_in_all_private_channels(user):
+    for channel_id in DISCORD_CHANNELS_ID:
+        channel_members = client \
+            .get_guild(DISCORD_GUILD_ID) \
+            .get_channel(int(channel_id)) \
+            .members
+        channel_members_id = list(
+            map(lambda member: member.id, channel_members)
+        )
+        if user.id not in channel_members_id:
+            return False
+    return True
+
+
 class Buttons(discord.ui.View):
     def __init__(self, *, timeout=180, user=None, admin=None):
         super().__init__(timeout=timeout)
@@ -75,39 +89,41 @@ class MyClient(discord.Client):
     @staticmethod
     async def on_message(message: discord.Message):
         if type(message.author) == User:
-            if message.content.isdigit():
+            if is_user_in_all_private_channels(message.author):
+                await message.channel.typing()
+                await message.author.send(
+                    'You already consist in the private chats! '
+                    ':white_check_mark:'
+                )
+            elif message.content.isdigit():
+                logger.info('Started processing ' + message.author.name +
+                            ' with id: ' + str(message.author.id))
+                await message.channel.typing()
+
                 uid = message.content
 
-                if False:  # TODO: check if user already in channels
-                    await message.author.send(
-                        'You already sent a request. '
-                        'Please wait up to 48 hours to approve your request.'
-                    )
-                else:
-                    logger.info('Started processing ' + message.author.name +
-                                ' with id: ' + str(message.author.id))
+                for admin_id in DISCORD_ADMINS:
+                    admin = await client.fetch_user(admin_id)
+                    await admin.send('**' + message.author.name + '**' +
+                                     ' sent request to join to '
+                                     'the private channels!\n'
+                                     'ByBit UID: ' + uid,
+                                     view=Buttons(
+                                         user=message.author,
+                                         admin=admin
+                                     ))
 
-                    for admin_id in DISCORD_ADMINS:
-                        admin = await client.fetch_user(admin_id)
-                        await admin.send('**' + message.author.name + '**' +
-                                         ' sent request to join to '
-                                         'the private channels!\n'
-                                         'ByBit UID: ' + uid,
-                                         view=Buttons(
-                                             user=message.author,
-                                             admin=admin
-                                         ))
+                await message.author.send(
+                    'Your request has been successfully created! '
+                    'Please wait up to 48 hours to approve your request '
+                    ':timer:'
+                )
 
-                    await message.author.send(
-                        'Your request has been successfully created! '
-                        'Please wait up to 48 hours to approve your request '
-                        ':timer:'
-                    )
-
-                    logger.info(message.author.name +
-                                ' (' + str(message.author.id) + ') ' +
-                                'is successfully processed!')
+                logger.info(message.author.name +
+                            ' (' + str(message.author.id) + ') ' +
+                            'is successfully processed!')
             else:
+                await message.channel.typing()
                 await message.author.send(
                     'Incorrect message! Please send your ByBit UID...'
                 )
