@@ -92,7 +92,7 @@ class MyClient(discord.Client):
             if is_user_in_all_private_channels(message.author):
                 await message.channel.typing()
                 await message.author.send(
-                    'You already consist in the private chats! '
+                    'You already consist in the private channels! '
                     ':white_check_mark:'
                 )
             elif message.content.isdigit():
