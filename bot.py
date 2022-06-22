@@ -13,10 +13,12 @@ logger.setLevel(level=LOG_LEVEL)
 
 def is_user_in_all_private_channels(user):
     for channel_id in DISCORD_CHANNELS_ID:
-        channel_members = client \
-            .get_guild(DISCORD_GUILD_ID) \
-            .get_channel(int(channel_id)) \
-            .members
+        guild = client.get_guild(DISCORD_GUILD_ID)
+        channel = guild.get_channel(int(channel_id))
+        if not channel:
+            continue
+        channel_members = channel.members
+
         channel_members_id = list(
             map(lambda member: member.id, channel_members)
         )
@@ -114,11 +116,13 @@ class MyClient(discord.Client):
 
     @staticmethod
     async def on_message(message: discord.Message):
-        if type(message.author) == User:
+        if type(message.author) == User and \
+                DISCORD_GUILD_ID in \
+                list(map(lambda guild: guild.id, message.author.mutual_guilds)):
             if is_user_in_all_private_channels(message.author):
                 await message.channel.typing()
                 await message.author.send(
-                    'You already consist in the private channels! '
+                    'You already consist in the all needed channels! '
                     ':white_check_mark:'
                 )
             elif message.content.isdigit():
