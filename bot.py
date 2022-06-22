@@ -66,7 +66,9 @@ class Buttons(discord.ui.View):
             view=self
         )
 
-        logger.info(self.user.name + ' has been approved by ' + self.admin.name)
+        logger.info(self.user.name + ' has been approved by ' +
+                    self.admin.name + ' and added to channels:\n' +
+                    channels_been_added)
 
     @discord.ui.button(label='Deny', style=discord.ButtonStyle.red)
     async def red_button(self, interaction: discord.Interaction,
@@ -87,10 +89,15 @@ class Buttons(discord.ui.View):
 class MyClient(discord.Client):
     @staticmethod
     async def on_ready():
+        logger.info('---------------------------------------------------------')
         guild_count = 0
 
+        logger.info('Connected guilds:')
         for guild in client.guilds:
-            logger.info(f'- {guild.id} (name: {guild.name})')
+            logger.info(f'- {guild.name} (ID: {guild.id})')
+            for channel in guild.channels:
+                logger.info(f' |---- {channel.name} (ID: {channel.id}):')
+
             guild_count = guild_count + 1
 
         logger.info('SampleDiscordBot is in ' + str(guild_count) + ' guilds.')
