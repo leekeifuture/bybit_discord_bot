@@ -106,7 +106,8 @@ class MyClient(discord.Client):
 
     @staticmethod
     async def on_member_join(member):
-        if not is_user_in_all_private_channels(member):
+        if member.guild.id == DISCORD_GUILD_ID and \
+                not is_user_in_all_private_channels(member):
             await member.send(
                 'Welcome! I\'m here to help you get access to ByBit '
                 'private channels. Just send me your UID from ByBit '
