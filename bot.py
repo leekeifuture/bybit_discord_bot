@@ -27,65 +27,52 @@ def is_user_in_all_private_channels(user):
     return True
 
 
-class Buttons(discord.ui.View):
-    def __init__(self, *, timeout=180, user=None, admin=None):
-        super().__init__(timeout=timeout)
-        self.user = user
-        self.admin = admin
+def is_admin(user_id):
+    return True if user_id in DISCORD_ADMINS else False
 
-    @discord.ui.button(label='Approve', style=discord.ButtonStyle.green)
-    async def green_button(self, interaction: discord.Interaction,
-                           button: discord.ui.Button):
-        channels_been_added = ''
-        for channel_id in DISCORD_CHANNELS_ID:
-            guild = client.get_guild(DISCORD_GUILD_ID)
-            channel = guild.get_channel(int(channel_id))
 
-            channel_members_id = list(
-                map(lambda member: member.id, channel.members)
+async def approve_user(admin, user):
+    channels_been_added = ''
+    for channel_id in DISCORD_CHANNELS_ID:
+        guild = client.get_guild(DISCORD_GUILD_ID)
+        channel = guild.get_channel(int(channel_id))
+
+        channel_members_id = list(
+            map(lambda member: member.id, channel.members)
+        )
+        if user.id not in channel_members_id:
+            await channel.set_permissions(
+                guild.get_member(user.id),
+                send_messages=True,
+                read_messages=True,
+                connect=True
             )
-            if self.user.id not in channel_members_id:
-                await channel.set_permissions(
-                    guild.get_member(self.user.id),
-                    send_messages=True,
-                    read_messages=True
-                )
 
-                channels_been_added += '- **' + channel.name + '**\n'
+            channels_been_added += '- **' + channel.name + '**\n'
 
-        await self.user.send(
-            'You\'re successful approved and '
-            'been added to the private channels :white_check_mark:\n' +
-            'Added to:\n' +
-            channels_been_added
-        )
+    await user.send(
+        'You\'re successful approved and '
+        'been added to the private channels :white_check_mark:\n' +
+        'Added to:\n' +
+        channels_been_added
+    )
 
-        self.green_button.disabled = True
-        self.red_button.disabled = True
-        await interaction.response.edit_message(
-            content=self.user.name + ' has been successfully approved and '
-                                     'added to the private channels!',
-            view=self
-        )
+    await admin.send(user.name + ' has been successfully approved and '
+                                 'added to the private channels!')
 
-        logger.info(self.user.name + ' has been approved by ' +
-                    self.admin.name + ' and added to channels:\n' +
-                    channels_been_added)
+    logger.info(user.name + ' has been approved by ' +
+                admin.name + ' and added to channels:\n' +
+                channels_been_added)
 
-    @discord.ui.button(label='Deny', style=discord.ButtonStyle.red)
-    async def red_button(self, interaction: discord.Interaction,
-                         button: discord.ui.Button):
-        await self.user.send(
-            'You was denied to join to the private channels :cry:')
 
-        self.green_button.disabled = True
-        self.red_button.disabled = True
-        await interaction.response.edit_message(
-            content=self.user.name + ' has been successfully denied!',
-            view=self
-        )
+async def deny_user(admin, user):
+    await user.send(
+        'You was denied to join to the private channels :cry:'
+    )
 
-        logger.info(self.user.name + ' has been denied by ' + self.admin.name)
+    await admin.send(user.name + ' has been successfully denied!')
+
+    logger.info(user.name + ' has been denied by ' + admin.name)
 
 
 class MyClient(discord.Client):
@@ -120,7 +107,38 @@ class MyClient(discord.Client):
         if type(message.author) == User and \
                 DISCORD_GUILD_ID in \
                 list(map(lambda guild: guild.id, message.author.mutual_guilds)):
-            if is_user_in_all_private_channels(message.author):
+            if is_admin(message.author.id):
+                if message.content.lower() == 'yes' or \
+                        message.content.lower() == 'no':
+                    await message.channel.typing()
+
+                    if message.reference:
+                        user = None
+                        if 'Discord ID: ' in message.reference.resolved.content:
+                            user_id = message.reference.resolved \
+                                .content.split('Discord ID: ')[-1]
+                            user = await client.fetch_user(int(user_id))
+                        else:
+                            members = client.get_guild(DISCORD_GUILD_ID).members
+                            for member in members:
+                                user_name = message.reference.resolved.content \
+                                                .split(
+                                    '** sent request to join')[0][2:]
+                                if member.name == user_name:
+                                    user = member
+
+                        if message.content.lower() == 'yes':
+                            await approve_user(message.author, user)
+                        elif message.content.lower() == 'no':
+                            await deny_user(message.author, user)
+                    else:
+                        await message.author.send(
+                            'Please make a reference to message '
+                            'where bot asks to approve!'
+                        )
+                else:
+                    await message.author.send('Wrong command!')
+            elif is_user_in_all_private_channels(message.author):
                 await message.channel.typing()
                 await message.author.send(
                     'You already consist in the all needed channels! '
@@ -137,14 +155,11 @@ class MyClient(discord.Client):
 
                 for admin_id in DISCORD_ADMINS:
                     admin = await client.fetch_user(admin_id)
-                    await admin.send('**' + message.author.name + '**' +
-                                     ' sent request to join to '
+                    await admin.send(f'**{message.author.name}** '
+                                     'sent request to join to '
                                      'the private channels!\n'
-                                     'ByBit UID: ' + uid,
-                                     view=Buttons(
-                                         user=message.author,
-                                         admin=admin
-                                     ))
+                                     f'ByBit UID: {uid}\n'
+                                     f'Discord ID: {str(message.author.id)}')
 
                 await message.author.send(
                     'Your request has been successfully created! '
