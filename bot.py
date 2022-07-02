@@ -155,11 +155,15 @@ class MyClient(discord.Client):
 
                 for admin_id in DISCORD_ADMINS:
                     admin = await client.fetch_user(admin_id)
-                    await admin.send(f'**{message.author.name}** '
-                                     'sent request to join to '
-                                     'the private channels!\n'
-                                     f'ByBit UID: {uid}\n'
-                                     f'Discord ID: {str(message.author.id)}')
+                    await admin.send(
+                        f'**{message.author.name}** '
+                        'sent request to join to '
+                        'the private channels!\n'
+                        f'ByBit UID: {uid}\n'
+                        f'Discord ID: {str(message.author.id)}\n\n'
+                        'Please reply on this message with "yes" or "no" for '
+                        'approve or deny user to join to the private channels!'
+                    )
 
                 await message.author.send(
                     'Your request has been successfully created! '
