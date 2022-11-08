@@ -115,8 +115,10 @@ class MyClient(discord.Client):
                     if message.reference:
                         user = None
                         if 'Discord ID: ' in message.reference.resolved.content:
-                            user_id = message.reference.resolved \
-                                .content.split('Discord ID: ')[-1]
+                            user_id = message.reference.resolved.content \
+                                .split('Discord ID: ')[-1] \
+                                .split('\n\n')[0]
+
                             user = await client.fetch_user(int(user_id))
                         else:
                             members = client.get_guild(DISCORD_GUILD_ID).members
